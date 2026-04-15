@@ -1,0 +1,44 @@
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.EntityFrameworkCore;
+using RPAS.Governance.Persistence.Data;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add standard Aspire defaults (Health checks, OTel, Resilience)
+builder.AddServiceDefaults();
+
+// Add services to the container.
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddOpenApi();
+
+// Sovereign persistence with built-in Aspire health checks and pooling
+builder.AddNpgsqlDbContext<GovernanceDbContext>("governanceDb", configureDbContextOptions: options =>
+{
+    options.AddInterceptors(new RpasLawEnforcementInterceptor(
+        builder.Services.BuildServiceProvider().GetRequiredService<ILogger<RpasLawEnforcementInterceptor>>(),
+        builder.Configuration));
+});
+
+var app = builder.Build();
+
+// Map standard Aspire endpoints (/health, /alive)
+app.MapDefaultEndpoints();
+
+using (var scope = app.Services.CreateScope())
+{
+    var _db = scope.ServiceProvider.GetRequiredService<GovernanceDbContext>();
+    try {
+        _db.Database.Migrate();
+    } catch {
+        _db.Database.EnsureCreated();
+    }
+}
+
+app.UseHttpsRedirection();
+app.UseAuthorization();
+app.MapControllers();
+
+app.Run();

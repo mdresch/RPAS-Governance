@@ -1,0 +1,15 @@
+F:\Source\Repos\RPAS-Governance\RPAS.Governance.Persistence\bin\Debug\net10.0\RPAS.Governance.Persistence.deps.json
+F:\Source\Repos\RPAS-Governance\RPAS.Governance.Persistence\bin\Debug\net10.0\RPAS.Governance.Persistence.dll
+F:\Source\Repos\RPAS-Governance\RPAS.Governance.Persistence\bin\Debug\net10.0\RPAS.Governance.Persistence.pdb
+F:\Source\Repos\RPAS-Governance\RPAS.Governance.Persistence\bin\Debug\net10.0\RPAS.Governance.Core.dll
+F:\Source\Repos\RPAS-Governance\RPAS.Governance.Persistence\bin\Debug\net10.0\RPAS.Governance.Core.pdb
+F:\Source\Repos\RPAS-Governance\RPAS.Governance.Persistence\obj\Debug\net10.0\RPAS.Governance.Persistence.csproj.AssemblyReference.cache
+F:\Source\Repos\RPAS-Governance\RPAS.Governance.Persistence\obj\Debug\net10.0\RPAS.Governance.Persistence.GeneratedMSBuildEditorConfig.editorconfig
+F:\Source\Repos\RPAS-Governance\RPAS.Governance.Persistence\obj\Debug\net10.0\RPAS.Governance.Persistence.AssemblyInfoInputs.cache
+F:\Source\Repos\RPAS-Governance\RPAS.Governance.Persistence\obj\Debug\net10.0\RPAS.Governance.Persistence.AssemblyInfo.cs
+F:\Source\Repos\RPAS-Governance\RPAS.Governance.Persistence\obj\Debug\net10.0\RPAS.Governance.Persistence.csproj.CoreCompileInputs.cache
+F:\Source\Repos\RPAS-Governance\RPAS.Governance.Persistence\obj\Debug\net10.0\RPAS.Gov.8294C911.Up2Date
+F:\Source\Repos\RPAS-Governance\RPAS.Governance.Persistence\obj\Debug\net10.0\RPAS.Governance.Persistence.dll
+F:\Source\Repos\RPAS-Governance\RPAS.Governance.Persistence\obj\Debug\net10.0\refint\RPAS.Governance.Persistence.dll
+F:\Source\Repos\RPAS-Governance\RPAS.Governance.Persistence\obj\Debug\net10.0\RPAS.Governance.Persistence.pdb
+F:\Source\Repos\RPAS-Governance\RPAS.Governance.Persistence\obj\Debug\net10.0\ref\RPAS.Governance.Persistence.dll

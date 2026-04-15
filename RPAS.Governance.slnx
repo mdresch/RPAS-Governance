@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="Aspire.AppHost/Aspire.AppHost.csproj" />
+  <Project Path="RPAS.Governance.Api/RPAS.Governance.Api.csproj" />
+  <Project Path="RPAS.Governance.Client/RPAS.Governance.Client.csproj" />
+  <Project Path="RPAS.Governance.Core/RPAS.Governance.Core.csproj" />
+  <Project Path="RPAS.Governance.Persistence/RPAS.Governance.Persistence.csproj" />
+</Solution>

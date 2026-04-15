@@ -1,0 +1,20 @@
+RPAS SOVEREIGN AUTHORITY SOURCE LICENSE (v1.0)
+
+Copyright (c) 2026 RPAS Sovereign Governance Authority.
+
+TERMS AND CONDITIONS
+
+1. SCOPE: This license applies to the RPAS-Governance source code, including the Api, Core, and Persistence layers.
+
+2. PERMITTED USE: You are permitted to:
+   a. Read, review, and audit the source code for verification of jurisdiction.
+   b. Use the code for internal development, testing, and educational purposes.
+   c. Contribute improvements via official maintainer channels.
+
+3. RESTRICTIONS: 
+   a. AUTHORITY ISSUANCE: You may NOT use this source code to issue authority, tokens, or legal attestations under the name "RPAS Governance", "CSR-42", or any trademarked name of the Authority without explicit certification.
+   b. UNGOVERNED FORKS: You may fork this code, but any fork that modifies the G1-G6 invariants MUST NOT present itself as an authoritative courthouse for the RPAS-CM ecosystem.
+   c. REDISTRIBUTION: Redistribution of the source code must retain this license and all certification notices (e.g., CERTIFICATION.md).
+   d. COMMERCIAL HOSTING AND SERVICE OFFERINGS: You may NOT operate this software, or any modified derivative thereof, as a hosted service, SaaS offering, or governance-as-a-service platform that issues authority, validation, tokens, or compliance attestations for third parties, unless you have received explicit written certification from the RPAS Sovereign Governance Authority.
+
+4. NO WARRANTY: The code is provided "as is", without warranty of any kind. Sovereignty is maintained at runtime, not in the source file.
