@@ -14,12 +14,12 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
 
-// Sovereign persistence with built-in Aspire health checks and pooling
-builder.AddNpgsqlDbContext<GovernanceDbContext>("governanceDb", configureDbContextOptions: options =>
+// Sovereign persistence with built-in Aspire health checks and pooling (same connection name as Adpa orchestrator)
+builder.Services.AddSingleton<RpasLawEnforcementInterceptor>();
+builder.AddNpgsqlDbContext<GovernanceDbContext>("governance-ledger", configureDbContextOptions: options =>
 {
-    options.AddInterceptors(new RpasLawEnforcementInterceptor(
-        builder.Services.BuildServiceProvider().GetRequiredService<ILogger<RpasLawEnforcementInterceptor>>(),
-        builder.Configuration));
+    using var sp = builder.Services.BuildServiceProvider();
+    options.AddInterceptors(sp.GetRequiredService<RpasLawEnforcementInterceptor>());
 });
 
 var app = builder.Build();
@@ -27,12 +27,16 @@ var app = builder.Build();
 // Map standard Aspire endpoints (/health, /alive)
 app.MapDefaultEndpoints();
 
-using (var scope = app.Services.CreateScope())
+if (!app.Configuration.GetValue("Governance:SkipEfMigrations", false))
 {
+    using var scope = app.Services.CreateScope();
     var _db = scope.ServiceProvider.GetRequiredService<GovernanceDbContext>();
-    try {
+    try
+    {
         _db.Database.Migrate();
-    } catch {
+    }
+    catch
+    {
         _db.Database.EnsureCreated();
     }
 }
