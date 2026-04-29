@@ -60,6 +60,10 @@ public class ValidationController : ControllerBase
                     var reason = petition.Payload.TryGetProperty("reason", out var p) ? p.GetString() ?? "" : "";
                     bc.MarkRejected(reason);
                 }
+                else
+                {
+                    return BadRequest($"Unsupported Action '{petition.Action}' for EntityType '{petition.EntityType}'.");
+                }
             }
             else if (petition.EntityType == "GovernanceLedgerEntry")
             {
@@ -92,6 +96,10 @@ public class ValidationController : ControllerBase
                     
                     var notes = petition.Payload.TryGetProperty("notes", out var p) ? p.GetString() ?? "" : "";
                     entry.AddGovernorNotes(notes);
+                }
+                else
+                {
+                    return BadRequest($"Unsupported Action '{petition.Action}' for EntityType '{petition.EntityType}'.");
                 }
             }
             else

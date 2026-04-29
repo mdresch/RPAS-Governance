@@ -31,10 +31,10 @@ public class AuditLoopSimulator
             if (result.Success)
             {
                 Console.WriteLine($"[Petitioner] Authority GRANTED.");
-                Console.WriteLine($"[Petitioner] Token: {result.Token?.Id} (Expires: {result.Token?.ExpiresAt})");
+                Console.WriteLine($"[Petitioner] Token: {result.AuthorityToken?.Id} (Expires: {result.AuthorityToken?.ExpiresAt})");
                 
                 // 2. Explicit secondary step for mutation effect (as per Underwriter mandate)
-                await ExecuteMutationEffect(result.Token?.Id, "/docs/ratified/manual_v1.pdf");
+                await ExecuteMutationEffect(result.AuthorityToken?.Id, "/docs/ratified/manual_v1.pdf");
             }
         }
         catch (RpasLawViolationException ex)

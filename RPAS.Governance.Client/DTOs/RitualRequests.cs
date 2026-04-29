@@ -22,7 +22,7 @@ public record BusinessCaseCreateRequest(
     int Version = 1
 );
 
-public record CostItemDto(string Description, decimal Amount, string Category);
+public record CostItemDto(string Label, double Amount, string Currency = "USD", bool IsPlaceholder = false);
 
 /// <summary>
 /// Internal DTO representing the raw petition format expected by the Governance API.

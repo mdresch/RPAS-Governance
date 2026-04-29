@@ -16,9 +16,10 @@ builder.Services.AddOpenApi();
 
 // Sovereign persistence with built-in Aspire health checks and pooling (same connection name as Adpa orchestrator)
 builder.Services.AddSingleton<RpasLawEnforcementInterceptor>();
-builder.AddNpgsqlDbContext<GovernanceDbContext>("governance-ledger", configureDbContextOptions: options =>
+builder.Services.AddDbContext<GovernanceDbContext>((sp, options) =>
 {
-    using var sp = builder.Services.BuildServiceProvider();
+    var connectionString = builder.Configuration.GetConnectionString("governance-ledger");
+    options.UseNpgsql(connectionString);
     options.AddInterceptors(sp.GetRequiredService<RpasLawEnforcementInterceptor>());
 });
 
