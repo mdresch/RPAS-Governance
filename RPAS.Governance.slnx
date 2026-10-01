@@ -4,4 +4,5 @@
   <Project Path="RPAS.Governance.Client/RPAS.Governance.Client.csproj" />
   <Project Path="RPAS.Governance.Core/RPAS.Governance.Core.csproj" />
   <Project Path="RPAS.Governance.Persistence/RPAS.Governance.Persistence.csproj" />
+  <Project Path="RPAS.Governance.Tests/RPAS.Governance.Tests.csproj" />
 </Solution>
