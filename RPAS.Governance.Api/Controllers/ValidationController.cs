@@ -25,10 +25,13 @@ public class ValidationController : ControllerBase
     private readonly GovernanceDbContext _db;
     private readonly ILogger<ValidationController> _logger;
 
-    public ValidationController(GovernanceDbContext db, ILogger<ValidationController> logger)
+    private readonly PetitionerContentModes _modes;
+
+    public ValidationController(GovernanceDbContext db, ILogger<ValidationController> logger, PetitionerContentModes modes)
     {
         _db = db;
         _logger = logger;
+        _modes = modes;
     }
 
     [HttpPost("validate")]
@@ -42,8 +45,23 @@ public class ValidationController : ControllerBase
             return StatusCode(403, new { error = "Authenticated caller carries no petitioner identity." });
         }
 
+        // AMD-2026-10-01-0006: a hash-only petitioner never sends content. It records evidence through /Evidence/record.
+        if (_modes.Resolve(petitionerId) != GovernanceLedgerEntry.ContentModeFull)
+        {
+            return StatusCode(403, new { error = "This petitioner is hash-only: full-content petitions are not accepted. Use /Evidence/record." });
+        }
+
         try
         {
+            // AMD-2026-10-01-0005: once the hash chain exists, history is frozen. Changes to an existing ledger entry
+            // are recorded as NEW entries that refer to it; the original row is never modified. The amendment still
+            // carries forward the entry's current state and applies the same validated domain mutation, so a
+            // justification is still required to override, an overridden entry still cannot be invalidated, and the
+            // amendment's own Status/IsOverridden/GovernorNotes reflect the change, not just an audit note about it.
+            var chainActive = await LedgerChain.IsActiveAsync(_db);
+            GovernanceLedgerEntry? amendment = null;
+            Guid? amendmentRefersTo = null;
+
             if (petition.EntityType == "BusinessCase")
             {
                 if (petition.Action == "Create")
@@ -76,35 +94,66 @@ public class ValidationController : ControllerBase
             }
             else if (petition.EntityType == "GovernanceLedgerEntry")
             {
+                // Compare GUIDs, not their text form (text casing differs between database providers).
+                Guid.TryParse(petition.EntityId, out var ledgerEntryId);
+
                 if (petition.Action == "Create")
                 {
                     var entry = petition.Payload.Deserialize<GovernanceLedgerEntry>();
                     if (entry == null) return BadRequest("Invalid LedgerEntry payload.");
                     
+                    entry.Attribute(petitionerId, GovernanceLedgerEntry.ContentModeFull);
                     _db.GovernanceLedgerEntries.Add(entry);
                 }
                 else if (petition.Action == "OverrideRitual")
                 {
-                    var entry = await _db.GovernanceLedgerEntries.FirstOrDefaultAsync(x => x.Id.ToString() == petition.EntityId);
+                    var entry = await _db.GovernanceLedgerEntries.FirstOrDefaultAsync(x => x.Id == ledgerEntryId);
                     if (entry == null) return NotFound($"LedgerEntry {petition.EntityId} not found.");
                     
                     var justification = petition.Payload.TryGetProperty("justification", out var p) ? p.GetString() ?? "" : "";
-                    entry.OverrideRitual(justification);
+                    if (chainActive || entry.IsSealed)
+                    {
+                        amendment = GovernanceLedgerEntry.CreateAmendment(entry, petition.Action);
+                        amendment.OverrideRitual(justification);
+                        amendmentRefersTo = entry.Id;
+                    }
+                    else
+                    {
+                        entry.OverrideRitual(justification);
+                    }
                 }
                 else if (petition.Action == "MarkInvalidated")
                 {
-                    var entry = await _db.GovernanceLedgerEntries.FirstOrDefaultAsync(x => x.Id.ToString() == petition.EntityId);
+                    var entry = await _db.GovernanceLedgerEntries.FirstOrDefaultAsync(x => x.Id == ledgerEntryId);
                     if (entry == null) return NotFound($"LedgerEntry {petition.EntityId} not found.");
-                    
-                    entry.MarkInvalidated();
+
+                    if (chainActive || entry.IsSealed)
+                    {
+                        amendment = GovernanceLedgerEntry.CreateAmendment(entry, petition.Action);
+                        amendment.MarkInvalidated();
+                        amendmentRefersTo = entry.Id;
+                    }
+                    else
+                    {
+                        entry.MarkInvalidated();
+                    }
                 }
                 else if (petition.Action == "AddGovernorNotes")
                 {
-                    var entry = await _db.GovernanceLedgerEntries.FirstOrDefaultAsync(x => x.Id.ToString() == petition.EntityId);
+                    var entry = await _db.GovernanceLedgerEntries.FirstOrDefaultAsync(x => x.Id == ledgerEntryId);
                     if (entry == null) return NotFound($"LedgerEntry {petition.EntityId} not found.");
-                    
+
                     var notes = petition.Payload.TryGetProperty("notes", out var p) ? p.GetString() ?? "" : "";
-                    entry.AddGovernorNotes(notes);
+                    if (chainActive || entry.IsSealed)
+                    {
+                        amendment = GovernanceLedgerEntry.CreateAmendment(entry, petition.Action);
+                        amendment.AddGovernorNotes(notes);
+                        amendmentRefersTo = entry.Id;
+                    }
+                    else
+                    {
+                        entry.AddGovernorNotes(notes);
+                    }
                 }
                 else
                 {
@@ -117,11 +166,24 @@ public class ValidationController : ControllerBase
             }
 
             // 2. Audit Trail Allocation (Atomic with Mutation)
-            var ledgerEntry = new GovernanceLedgerEntry(
-                petition.Action,
-                businessCaseJson: petition.Payload.ToString()
-            );
-            ledgerEntry.AddGovernorNotes($"Approved via Sovereign Extraction Verification Loop. Action: {petition.Action}. Petitioner: {petitionerId}");
+            // When the action amended a sealed/chained entry, the amendment itself IS the record: it already
+            // carries the validated Status/IsOverridden/OverrideJustification/GovernorNotes, so it replaces the
+            // generic audit stub rather than sitting alongside an empty one.
+            GovernanceLedgerEntry ledgerEntry;
+            if (amendment is not null)
+            {
+                ledgerEntry = amendment;
+                ledgerEntry.Attribute(petitionerId, GovernanceLedgerEntry.ContentModeFull, amendmentRefersTo);
+            }
+            else
+            {
+                ledgerEntry = new GovernanceLedgerEntry(
+                    petition.Action,
+                    businessCaseJson: petition.Payload.ToString()
+                );
+                ledgerEntry.AddGovernorNotes($"Approved via Sovereign Extraction Verification Loop. Action: {petition.Action}. Petitioner: {petitionerId}");
+                ledgerEntry.Attribute(petitionerId, GovernanceLedgerEntry.ContentModeFull);
+            }
             _db.GovernanceLedgerEntries.Add(ledgerEntry);
 
             // 3. Issue Tokenized Authority (Phase-5 Step 5.2 & 5.3)
@@ -138,7 +200,7 @@ public class ValidationController : ControllerBase
             _db.AuthorityTokens.Add(authorityToken);
 
             // The Underwriter explicitly mandated: "Validation is the mutation. DbContext.SaveChanges() is invoked."
-            await _db.SaveChangesAsync();
+            await LedgerChain.SaveChangesAsync(_db);
 
             return Ok(new 
             { 
@@ -151,6 +213,11 @@ public class ValidationController : ControllerBase
                     ritualType = authorityToken.RitualType
                 }
             });
+        }
+        catch (LedgerContentionException)
+        {
+            Response.Headers.RetryAfter = "1";
+            return StatusCode(503, new { error = "Ledger is busy; retry the request." });
         }
         catch (RpasLawViolationException ex)
         {

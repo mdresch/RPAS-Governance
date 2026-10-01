@@ -72,6 +72,8 @@ public class GovernanceDbContext(DbContextOptions<GovernanceDbContext> options) 
         modelBuilder.Entity<GovernanceLedgerEntry>(entity =>
         {
             entity.HasKey(e => e.Id);
+            // A chain position can be used once: this is what makes forking the chain impossible (AMD-2026-10-01-0005).
+            entity.HasIndex(e => e.Sequence).IsUnique();
             entity.ToTable("governance_ledger", t => t.HasCheckConstraint("CK_Ledger_Override", "(\"IsOverridden\" = false) OR (\"IsOverridden\" = true AND \"OverrideJustification\" IS NOT NULL AND \"OverrideJustification\" != '')"));
         });
     }

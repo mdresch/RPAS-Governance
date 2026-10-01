@@ -60,7 +60,7 @@ public class RpasLawEnforcementInterceptor : SaveChangesInterceptor
         if (context == null) return;
 
         var entries = context.ChangeTracker.Entries()
-            .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified);
+            .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified || e.State == EntityState.Deleted);
 
         foreach (var entry in entries)
         {
@@ -92,6 +92,16 @@ public class RpasLawEnforcementInterceptor : SaveChangesInterceptor
 
     private void ValidateLedgerEntry(GovernanceLedgerEntry entry, EntityState state)
     {
+        // AMD-2026-10-01-0005: the ledger is append-only. Nothing is ever deleted, and sealed entries never change.
+        if (state == EntityState.Deleted)
+        {
+            throw new RpasLawViolationException("LedgerAppendOnly", "Ledger entries can never be deleted.");
+        }
+        if (state == EntityState.Modified && entry.IsSealed)
+        {
+            throw new RpasLawViolationException("LedgerImmutability", $"Ledger entry {entry.Id} is sealed in the hash chain and cannot be modified.");
+        }
+
         if (entry.IsOverridden && string.IsNullOrWhiteSpace(entry.OverrideJustification))
         {
             throw new RpasLawViolationException(

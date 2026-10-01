@@ -1,0 +1,73 @@
+name: CI
+
+# AMD-2026-10-01-0012: automates what CONTRIBUTING.md's Gates 1-2 previously only documented as manual
+# shell commands (git status/diff, dotnet build) for a human or agent to run and judge by eye.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: rpas
+          POSTGRES_PASSWORD: rpas_ci_password
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history, not the default shallow clone: the Gate 1 diff step below needs the PR's base
+          # commit to be present locally to compute a three-dot diff against it.
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore RPAS.Governance.slnx
+
+      - name: Build (Gate 2 - Build Integrity)
+        run: dotnet build RPAS.Governance.slnx --no-restore
+
+      # Exercises the full suite, including the AMD-2026-10-01-0005 PostgresTests (real triggers, real
+      # migrations, parallel writers) that previously only ran when a developer happened to have a
+      # Postgres instance on hand - see RPAS.Governance.Tests/PostgresSupport.cs.
+      - name: Test (full suite, including real PostgreSQL)
+        env:
+          RPAS_TEST_POSTGRES: "Host=localhost;Port=5432;Username=rpas;Password=rpas_ci_password;Database=postgres"
+        run: dotnet test RPAS.Governance.Tests/RPAS.Governance.Tests.csproj --no-build --logger "trx;LogFileName=test-results.trx"
+
+      - name: Publish test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: '**/test-results.trx'
+
+      # Informational only, not a pass/fail gate: "only declared files changed" (CONTRIBUTING.md Gate 1)
+      # has no independent meaning against a PR diff until rpas-attestation.json is a current, real scope
+      # manifest to check against (it presently is not - see AMD-2026-10-01-0012 S2).
+      - name: Scope visibility (Gate 1, informational)
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        run: |
+          echo "### Changed files vs. ${{ github.event.pull_request.base.sha }}" >> "$GITHUB_STEP_SUMMARY"
+          git diff --stat "${{ github.event.pull_request.base.sha }}"..."${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
