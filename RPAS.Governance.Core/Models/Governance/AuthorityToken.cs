@@ -19,13 +19,21 @@ public class AuthorityToken
     
     public List<string> AllowedPaths { get; init; } = new();
 
+    /// <summary>
+    /// Authenticated identity of the petitioner the token was issued to (AMD-2026-10-01-0003).
+    /// Only that petitioner may consume the token. Null only on rows issued before the amendment;
+    /// such tokens are treated as unbound and are never honoured.
+    /// </summary>
+    public string? PetitionerId { get; init; }
+
     protected AuthorityToken() { }
 
-    public AuthorityToken(string ritualType, string entityId, int ttlSeconds = 120)
+    public AuthorityToken(string ritualType, string entityId, int ttlSeconds = 120, string? petitionerId = null)
     {
         RitualType = ritualType;
         EntityId = entityId;
         ExpiresAt = DateTime.UtcNow.AddSeconds(ttlSeconds);
+        PetitionerId = petitionerId;
     }
 
     public void MarkConsumed()

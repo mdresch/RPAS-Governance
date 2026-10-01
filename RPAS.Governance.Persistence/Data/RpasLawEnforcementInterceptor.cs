@@ -17,20 +17,24 @@ public class RpasLawEnforcementInterceptor : SaveChangesInterceptor
     private readonly ILogger<RpasLawEnforcementInterceptor> _logger;
     private readonly RpasLawMode _operationMode;
 
+    /// <summary>The effective enforcement mode.</summary>
+    public RpasLawMode Mode => _operationMode;
+
     public RpasLawEnforcementInterceptor(ILogger<RpasLawEnforcementInterceptor> logger, IConfiguration configuration)
     {
         _logger = logger;
         
-        // Default to Advisory for safety. Can be set to 'Enforced' via Configuration.
-        var configMode = configuration["Governance:RpasLawMode"] ?? "Advisory";
+        // Fail closed (AMD-2026-10-01-0004): Enforced is the default, for a missing or an invalid value.
+        // Advisory must be selected explicitly via Governance:RpasLawMode.
+        var configMode = configuration["Governance:RpasLawMode"] ?? "Enforced";
         if (Enum.TryParse<RpasLawMode>(configMode, true, out var parsedMode))
         {
             _operationMode = parsedMode;
         }
         else
         {
-            _operationMode = RpasLawMode.Advisory;
-            _logger.LogWarning("Invalid RpasLawMode '{Mode}'. Defaulting to Advisory.", configMode);
+            _operationMode = RpasLawMode.Enforced;
+            _logger.LogWarning("Invalid RpasLawMode '{Mode}'. Defaulting to Enforced.", configMode);
         }
         
         _logger.LogInformation("RPAS Law Enforcement Interceptor initialized in {Mode} mode.", _operationMode);

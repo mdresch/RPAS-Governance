@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using RPAS.Governance.Api.Security;
 using RPAS.Governance.Core.Models.Exceptions;
 using RPAS.Governance.Core.Models.Rituals;
 using RPAS.Governance.Core.Models.Governance;
@@ -33,6 +34,14 @@ public class ValidationController : ControllerBase
     [HttpPost("validate")]
     public async Task<IActionResult> Validate([FromBody] ValidationPetition petition)
     {
+        // AMD-2026-10-01-0003: every petition is attributable to an authenticated petitioner, and the
+        // token issued below is bound to that petitioner.
+        var petitionerId = RpasAuthentication.GetPetitionerId(User);
+        if (petitionerId is null)
+        {
+            return StatusCode(403, new { error = "Authenticated caller carries no petitioner identity." });
+        }
+
         try
         {
             if (petition.EntityType == "BusinessCase")
@@ -112,12 +121,12 @@ public class ValidationController : ControllerBase
                 petition.Action,
                 businessCaseJson: petition.Payload.ToString()
             );
-            ledgerEntry.AddGovernorNotes($"Approved via Sovereign Extraction Verification Loop. Action: {petition.Action}");
+            ledgerEntry.AddGovernorNotes($"Approved via Sovereign Extraction Verification Loop. Action: {petition.Action}. Petitioner: {petitionerId}");
             _db.GovernanceLedgerEntries.Add(ledgerEntry);
 
             // 3. Issue Tokenized Authority (Phase-5 Step 5.2 & 5.3)
             // Authorized TTL = 120 seconds per Underwriter Ruling
-            var authorityToken = new AuthorityToken(petition.Action, petition.EntityId, ttlSeconds: 120);
+            var authorityToken = new AuthorityToken(petition.Action, petition.EntityId, ttlSeconds: 120, petitionerId: petitionerId);
             
             // Step 5.3: Topology Binding (G6 Enforcement)
             var allowedPaths = RitualEnvelope.GetAllowedPaths(petition.Action);
@@ -151,6 +160,7 @@ public class ValidationController : ControllerBase
         }
         catch (System.Exception ex)
         {
+            _logger.LogError(ex, "Unhandled error while validating petition {Action} for {EntityType}.", petition.Action, petition.EntityType);
             return StatusCode(500, new { error = ex.Message });
         }
     }
