@@ -77,6 +77,27 @@ public class GovernanceLedgerEntry
         };
     }
 
+    /// <summary>
+    /// Starts an amendment of <paramref name="current"/>: carries forward its content and domain state (status,
+    /// override, notes) so the caller can apply exactly one domain mutation (<see cref="OverrideRitual"/>,
+    /// <see cref="MarkInvalidated"/> or <see cref="AddGovernorNotes"/>) with its usual validation against the
+    /// entry's actual current state, instead of a sealed entry's. <paramref name="eventRitualType"/> names the
+    /// amendment event itself (e.g. "OverrideRitual"), not the entity's own ritual type, consistent with how
+    /// RitualType is used for other ledger events ("ChainGenesis", "AnchorRecorded"). The caller still must call
+    /// <see cref="Attribute"/> with <c>refersToEntryId: current.Id</c>; this factory does not attribute or link
+    /// the amendment itself.
+    /// </summary>
+    public static GovernanceLedgerEntry CreateAmendment(GovernanceLedgerEntry current, string eventRitualType)
+    {
+        return new GovernanceLedgerEntry(eventRitualType, current.IdeationJson, current.BusinessCaseJson)
+        {
+            Status = current.Status,
+            IsOverridden = current.IsOverridden,
+            OverrideJustification = current.OverrideJustification,
+            GovernorNotes = current.GovernorNotes
+        };
+    }
+
     /// <summary>Attributes a not-yet-sealed entry to a petitioner and records how its content is held.</summary>
     public GovernanceLedgerEntry Attribute(string petitionerId, string contentMode, Guid? refersToEntryId = null)
     {

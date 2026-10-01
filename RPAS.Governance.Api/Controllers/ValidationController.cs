@@ -54,9 +54,13 @@ public class ValidationController : ControllerBase
         try
         {
             // AMD-2026-10-01-0005: once the hash chain exists, history is frozen. Changes to an existing ledger entry
-            // are recorded as NEW entries that refer to it; the original row is never modified.
+            // are recorded as NEW entries that refer to it; the original row is never modified. The amendment still
+            // carries forward the entry's current state and applies the same validated domain mutation, so a
+            // justification is still required to override, an overridden entry still cannot be invalidated, and the
+            // amendment's own Status/IsOverridden/GovernorNotes reflect the change, not just an audit note about it.
             var chainActive = await LedgerChain.IsActiveAsync(_db);
-            Guid? refersTo = null;
+            GovernanceLedgerEntry? amendment = null;
+            Guid? amendmentRefersTo = null;
 
             if (petition.EntityType == "BusinessCase")
             {
@@ -107,22 +111,49 @@ public class ValidationController : ControllerBase
                     if (entry == null) return NotFound($"LedgerEntry {petition.EntityId} not found.");
                     
                     var justification = petition.Payload.TryGetProperty("justification", out var p) ? p.GetString() ?? "" : "";
-                    if (chainActive || entry.IsSealed) refersTo = entry.Id; else entry.OverrideRitual(justification);
+                    if (chainActive || entry.IsSealed)
+                    {
+                        amendment = GovernanceLedgerEntry.CreateAmendment(entry, petition.Action);
+                        amendment.OverrideRitual(justification);
+                        amendmentRefersTo = entry.Id;
+                    }
+                    else
+                    {
+                        entry.OverrideRitual(justification);
+                    }
                 }
                 else if (petition.Action == "MarkInvalidated")
                 {
                     var entry = await _db.GovernanceLedgerEntries.FirstOrDefaultAsync(x => x.Id == ledgerEntryId);
                     if (entry == null) return NotFound($"LedgerEntry {petition.EntityId} not found.");
-                    
-                    if (chainActive || entry.IsSealed) refersTo = entry.Id; else entry.MarkInvalidated();
+
+                    if (chainActive || entry.IsSealed)
+                    {
+                        amendment = GovernanceLedgerEntry.CreateAmendment(entry, petition.Action);
+                        amendment.MarkInvalidated();
+                        amendmentRefersTo = entry.Id;
+                    }
+                    else
+                    {
+                        entry.MarkInvalidated();
+                    }
                 }
                 else if (petition.Action == "AddGovernorNotes")
                 {
                     var entry = await _db.GovernanceLedgerEntries.FirstOrDefaultAsync(x => x.Id == ledgerEntryId);
                     if (entry == null) return NotFound($"LedgerEntry {petition.EntityId} not found.");
-                    
+
                     var notes = petition.Payload.TryGetProperty("notes", out var p) ? p.GetString() ?? "" : "";
-                    if (chainActive || entry.IsSealed) refersTo = entry.Id; else entry.AddGovernorNotes(notes);
+                    if (chainActive || entry.IsSealed)
+                    {
+                        amendment = GovernanceLedgerEntry.CreateAmendment(entry, petition.Action);
+                        amendment.AddGovernorNotes(notes);
+                        amendmentRefersTo = entry.Id;
+                    }
+                    else
+                    {
+                        entry.AddGovernorNotes(notes);
+                    }
                 }
                 else
                 {
@@ -135,12 +166,24 @@ public class ValidationController : ControllerBase
             }
 
             // 2. Audit Trail Allocation (Atomic with Mutation)
-            var ledgerEntry = new GovernanceLedgerEntry(
-                petition.Action,
-                businessCaseJson: petition.Payload.ToString()
-            );
-            ledgerEntry.AddGovernorNotes($"Approved via Sovereign Extraction Verification Loop. Action: {petition.Action}. Petitioner: {petitionerId}");
-            ledgerEntry.Attribute(petitionerId, GovernanceLedgerEntry.ContentModeFull, refersTo);
+            // When the action amended a sealed/chained entry, the amendment itself IS the record: it already
+            // carries the validated Status/IsOverridden/OverrideJustification/GovernorNotes, so it replaces the
+            // generic audit stub rather than sitting alongside an empty one.
+            GovernanceLedgerEntry ledgerEntry;
+            if (amendment is not null)
+            {
+                ledgerEntry = amendment;
+                ledgerEntry.Attribute(petitionerId, GovernanceLedgerEntry.ContentModeFull, amendmentRefersTo);
+            }
+            else
+            {
+                ledgerEntry = new GovernanceLedgerEntry(
+                    petition.Action,
+                    businessCaseJson: petition.Payload.ToString()
+                );
+                ledgerEntry.AddGovernorNotes($"Approved via Sovereign Extraction Verification Loop. Action: {petition.Action}. Petitioner: {petitionerId}");
+                ledgerEntry.Attribute(petitionerId, GovernanceLedgerEntry.ContentModeFull);
+            }
             _db.GovernanceLedgerEntries.Add(ledgerEntry);
 
             // 3. Issue Tokenized Authority (Phase-5 Step 5.2 & 5.3)

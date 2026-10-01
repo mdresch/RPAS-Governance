@@ -200,13 +200,110 @@ public sealed class EvidenceApiTests : IDisposable
         Assert.False(after.IsOverridden);
         Assert.Equal("Completed", after.Status);
 
+        // The amendment IS the override: it carries the validated, structured effect of the request, not just an
+        // audit note about it, so a reader walking RefersToEntryId sees the real current state.
         var reference = Ledger().Single(e => e.RefersToEntryId == originalId);
         Assert.Equal("OverrideRitual", reference.RitualType);
-        Assert.Contains("Governor decision", reference.BusinessCaseJson);
+        Assert.True(reference.IsOverridden);
+        Assert.Equal("Overridden", reference.Status);
+        Assert.Equal("Governor decision", reference.OverrideJustification);
         Assert.Equal("petitioner-a", reference.PetitionerId);
 
         using var scope = _factory.Services.CreateScope();
         Assert.True((await LedgerVerifier.VerifyAsync(scope.ServiceProvider.GetRequiredService<GovernanceDbContext>())).Ok);
+    }
+
+    [Fact]
+    public async Task OverrideOfAChainedEntry_WithoutJustification_IsRejected_AndNothingIsWritten()
+    {
+        using var client = _factory.CreateClientFor("petitioner-a");
+        var originalId = Guid.NewGuid();
+
+        var create = await client.PostAsJsonAsync("/Validation/validate", new
+        {
+            EntityType = "GovernanceLedgerEntry", EntityId = "x", Action = "Create",
+            Payload = JsonDocument.Parse($"{{\"RitualType\":\"Create\",\"Id\":\"{originalId}\"}}").RootElement
+        });
+        Assert.Equal(HttpStatusCode.OK, create.StatusCode);
+        var before = Ledger();
+
+        // Chain is active (genesis sealed on the first save above). A missing justification must still be
+        // rejected here, exactly as it is before the chain exists (LedgerOverrideRule).
+        var override_ = await client.PostAsJsonAsync("/Validation/validate", new
+        {
+            EntityType = "GovernanceLedgerEntry", EntityId = originalId.ToString(), Action = "OverrideRitual",
+            Payload = JsonDocument.Parse("{}").RootElement
+        });
+
+        Assert.Equal(HttpStatusCode.Conflict, override_.StatusCode);
+        var problem = await override_.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("LedgerOverrideRule", problem.GetProperty("rule").GetString());
+
+        // A rejected request writes nothing: no amendment, no token, no change to the original.
+        Assert.Equal(before.Count, Ledger().Count);
+        Assert.DoesNotContain(Ledger(), e => e.RefersToEntryId == originalId);
+        Assert.False(Ledger().Single(e => e.Id == originalId).IsOverridden);
+    }
+
+    [Fact]
+    public async Task InvalidatingAnAlreadyOverriddenChainedEntry_IsRejected()
+    {
+        using var client = _factory.CreateClientFor("petitioner-a");
+        var originalId = Guid.NewGuid();
+
+        await client.PostAsJsonAsync("/Validation/validate", new
+        {
+            EntityType = "GovernanceLedgerEntry", EntityId = "x", Action = "Create",
+            Payload = JsonDocument.Parse($"{{\"RitualType\":\"Create\",\"Id\":\"{originalId}\"}}").RootElement
+        });
+        var overridden = await client.PostAsJsonAsync("/Validation/validate", new
+        {
+            EntityType = "GovernanceLedgerEntry", EntityId = originalId.ToString(), Action = "OverrideRitual",
+            Payload = JsonDocument.Parse("{\"justification\":\"Governor decision\"}").RootElement
+        });
+        Assert.Equal(HttpStatusCode.OK, overridden.StatusCode);
+        var overrideEntryId = Ledger().Single(e => e.RefersToEntryId == originalId).Id;
+
+        // EntityId addresses one specific row, not "whatever is currently latest for this lineage" (there is no
+        // lineage resolution in this design). Targeting the override amendment itself - which IS overridden - must
+        // still be rejected (LedgerStatusRule), the same rule that applies before the chain exists.
+        var invalidate = await client.PostAsJsonAsync("/Validation/validate", new
+        {
+            EntityType = "GovernanceLedgerEntry", EntityId = overrideEntryId.ToString(), Action = "MarkInvalidated",
+            Payload = JsonDocument.Parse("{}").RootElement
+        });
+
+        Assert.Equal(HttpStatusCode.Conflict, invalidate.StatusCode);
+        var problem = await invalidate.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("LedgerStatusRule", problem.GetProperty("rule").GetString());
+    }
+
+    [Fact]
+    public async Task AddGovernorNotesOnAChainedEntry_IsRecordedAsANewEntry_WithTheNotesInStructuredForm()
+    {
+        using var client = _factory.CreateClientFor("petitioner-a");
+        var originalId = Guid.NewGuid();
+
+        await client.PostAsJsonAsync("/Validation/validate", new
+        {
+            EntityType = "GovernanceLedgerEntry", EntityId = "x", Action = "Create",
+            Payload = JsonDocument.Parse($"{{\"RitualType\":\"Create\",\"Id\":\"{originalId}\"}}").RootElement
+        });
+
+        var addNotes = await client.PostAsJsonAsync("/Validation/validate", new
+        {
+            EntityType = "GovernanceLedgerEntry", EntityId = originalId.ToString(), Action = "AddGovernorNotes",
+            Payload = JsonDocument.Parse("{\"notes\":\"Reviewed and accepted.\"}").RootElement
+        });
+        Assert.Equal(HttpStatusCode.OK, addNotes.StatusCode);
+
+        Assert.Null(Ledger().Single(e => e.Id == originalId).GovernorNotes);
+
+        var reference = Ledger().Single(e => e.RefersToEntryId == originalId);
+        Assert.Equal("AddGovernorNotes", reference.RitualType);
+        Assert.Equal("Reviewed and accepted.", reference.GovernorNotes);
+        Assert.False(reference.IsOverridden);
+        Assert.Equal("Completed", reference.Status);
     }
 
     [Fact]
