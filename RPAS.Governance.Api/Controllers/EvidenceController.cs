@@ -69,6 +69,11 @@ public class EvidenceController(GovernanceDbContext db, ILogger<EvidenceControll
             Response.Headers.RetryAfter = "1";
             return StatusCode(503, new { error = "Ledger is busy; retry the request." });
         }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to record hash-only evidence for ritual {Ritual}.", entry.RitualType);
+            return StatusCode(500, new { error = "An internal error occurred while recording evidence." });
+        }
 
         logger.LogInformation("Recorded hash-only evidence {Ritual} at ledger sequence {Sequence}.", entry.RitualType, entry.Sequence);
 

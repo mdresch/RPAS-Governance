@@ -23,7 +23,7 @@ public static class LedgerHasher
 
     public static string Compute(GovernanceLedgerEntry e)
     {
-        var w = new CanonicalWriter();
+        using var w = new CanonicalWriter();
         w.Str(Version);
         w.Str(e.Sequence?.ToString(CultureInfo.InvariantCulture));
         w.Str(e.PrevHash);
@@ -49,7 +49,7 @@ public static class LedgerHasher
     /// </summary>
     public static string ComputeLegacyDigest(IEnumerable<GovernanceLedgerEntry> legacyRowsInOrder)
     {
-        var w = new CanonicalWriter();
+        using var w = new CanonicalWriter();
         w.Str(Version + "/legacy");
         foreach (var e in legacyRowsInOrder)
         {
@@ -69,7 +69,7 @@ public static class LedgerHasher
     private static string FormatTime(DateTimeOffset t) =>
         t.UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss.ffffff'Z'", CultureInfo.InvariantCulture);
 
-    private sealed class CanonicalWriter
+    private sealed class CanonicalWriter : IDisposable
     {
         private readonly IncrementalHash _hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
 
@@ -94,5 +94,7 @@ public static class LedgerHasher
             BinaryPrimitives.WriteInt32BigEndian(buffer, value);
             _hash.AppendData(buffer);
         }
+
+        public void Dispose() => _hash.Dispose();
     }
 }
