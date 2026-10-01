@@ -31,6 +31,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history, not the default shallow clone: the Gate 1 diff step below needs the PR's base
+          # commit to be present locally to compute a three-dot diff against it.
+          fetch-depth: 0
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -63,6 +67,7 @@ jobs:
       # manifest to check against (it presently is not - see AMD-2026-10-01-0012 S2).
       - name: Scope visibility (Gate 1, informational)
         if: github.event_name == 'pull_request'
+        continue-on-error: true
         run: |
           echo "### Changed files vs. ${{ github.event.pull_request.base.sha }}" >> "$GITHUB_STEP_SUMMARY"
           git diff --stat "${{ github.event.pull_request.base.sha }}"..."${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
