@@ -1,8 +1,10 @@
 # RPAS‑CM Amendment Record: AMD‑2026‑10‑01‑0005 — Ledger Hash Chain and Append‑Only Enforcement
 
 ## 1. Metadata
-- **Type**: SEC (Security) / INT (Integrity)
+- **Domain**: SEC (Security) / INT (Integrity) — see RPAS‑CM‑NAM‑001 §3.2 (field renamed from `Type` to avoid colliding with the `INT` = Integration change type below)
+- **Change Type**: EXP (Expansion) — see RPAS‑CM‑NAM‑001 §3.1
 - **Status**: Proposed (additive; does not modify the G1–G6 invariants or the sealed CSR‑42 baseline)
+- **Basis / CSR Target**: CSR‑42
 - **Reference**: SIDPA Phase B — evidence integrity
 - **Task Class**: TCL-SEC + TCL-GOV
 - **Depends on**: AMD‑2026‑10‑01‑0001…0004

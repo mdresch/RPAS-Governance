@@ -1,8 +1,10 @@
 # RPAS‑CM Amendment Record: AMD‑2026‑10‑01‑0006 — Hash‑Only Petitioner Mode
 
 ## 1. Metadata
-- **Type**: SEC (Security) / PRIV (Privacy)
+- **Domain**: SEC (Security) / PRIV (Privacy) — see RPAS‑CM‑NAM‑001 §3.2 (field renamed from `Type`)
+- **Change Type**: EXP (Expansion) — see RPAS‑CM‑NAM‑001 §3.1
 - **Status**: Proposed (additive; does not modify the G1–G6 invariants or the sealed CSR‑42 baseline)
+- **Basis / CSR Target**: CSR‑42
 - **Reference**: SIDPA Phase B — privacy‑preserving audit
 - **Task Class**: TCL-SEC + TCL-GOV
 - **Depends on**: AMD‑2026‑10‑01‑0003 (petitioner identity), AMD‑2026‑10‑01‑0005 (hash chain)
