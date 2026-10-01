@@ -47,12 +47,16 @@ public static class TestDatabase
 
     public static string ConnectionString(string path) => $"Data Source={path};Default Timeout=30;Pooling=False";
 
-    public static GovernanceDbContext NewContext(string path)
+    public static GovernanceDbContext NewContext(string path, bool withLawInterceptor = false)
     {
-        var options = new DbContextOptionsBuilder<GovernanceDbContext>()
-            .UseSqlite(ConnectionString(path))
-            .Options;
-        return new GovernanceDbContext(options);
+        var builder = new DbContextOptionsBuilder<GovernanceDbContext>().UseSqlite(ConnectionString(path));
+        if (withLawInterceptor)
+        {
+            var config = new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build(); // default: Enforced
+            builder.AddInterceptors(new RpasLawEnforcementInterceptor(
+                Microsoft.Extensions.Logging.Abstractions.NullLogger<RpasLawEnforcementInterceptor>.Instance, config));
+        }
+        return new GovernanceDbContext(builder.Options);
     }
 
     public static void Create(string path)
@@ -75,13 +79,22 @@ public static class TestDatabase
 /// Hosts the real API with a SQLite file database. With useTestAuth == false the API runs exactly as
 /// shipped with no authority configured, i.e. in its fail-closed state.
 /// </summary>
-public sealed class ApiFactory(bool useTestAuth) : WebApplicationFactory<Program>
+public sealed class ApiFactory(bool useTestAuth, IDictionary<string, string?>? settings = null) : WebApplicationFactory<Program>
 {
     public string DbPath { get; } = TestDatabase.NewPath();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseSetting("Governance:SkipEfMigrations", "true");
+
+        // petitioner-a and petitioner-b are full-content petitioners (they exercise the BusinessCase/ledger petitions).
+        // Every other petitioner is hash-only by default, which is the fail-closed behaviour under test.
+        builder.UseSetting("Governance:Petitioners:petitioner-a:ContentMode", "FullContent");
+        builder.UseSetting("Governance:Petitioners:petitioner-b:ContentMode", "FullContent");
+        foreach (var (key, value) in settings ?? new Dictionary<string, string?>())
+        {
+            builder.UseSetting(key, value);
+        }
 
         builder.ConfigureServices(services =>
         {

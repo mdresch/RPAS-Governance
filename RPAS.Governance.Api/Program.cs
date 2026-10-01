@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.EntityFrameworkCore;
+using RPAS.Governance.Api.Anchoring;
 using RPAS.Governance.Api.Security;
 using RPAS.Governance.Persistence.Data;
 
@@ -12,6 +13,9 @@ builder.AddServiceDefaults();
 
 // Petitioner authentication (AMD-2026-10-01-0003). Fails closed when no authority is configured.
 builder.Services.AddRpasAuthentication(builder.Configuration);
+
+builder.Services.AddSingleton<PetitionerContentModes>();
+builder.Services.AddLedgerAnchoring(builder.Configuration);
 
 // Add services to the container.
 builder.Services.AddControllers();
