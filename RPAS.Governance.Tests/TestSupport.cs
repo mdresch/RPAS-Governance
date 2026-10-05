@@ -97,7 +97,7 @@ public static class TestDatabase
 /// Hosts the real API with a SQLite file database. With useTestAuth == false the API runs exactly as
 /// shipped with no authority configured, i.e. in its fail-closed state.
 /// </summary>
-public sealed class ApiFactory(bool useTestAuth, IDictionary<string, string?>? settings = null) : WebApplicationFactory<Program>
+public class ApiFactory(bool useTestAuth, IDictionary<string, string?>? settings = null) : WebApplicationFactory<Program>
 {
     public string DbPath { get; } = TestDatabase.NewPath();
 
