@@ -65,9 +65,9 @@ public sealed class EvidenceApiTests : IDisposable
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal(2, body.GetProperty("sequence").GetInt64()); // genesis is 1
+        Assert.Equal(3, body.GetProperty("sequence").GetInt64()); // genesis is 1, the ritual-definition seed event is 2
 
-        var entry = Assert.Single(Ledger(), e => e.Sequence == 2);
+        var entry = Assert.Single(Ledger(), e => e.Sequence == 3);
         Assert.Equal("EvidenceRecorded", entry.RitualType);
         Assert.Equal("sidpa", entry.PetitionerId);
         Assert.Equal(GovernanceLedgerEntry.ContentModeHashOnly, entry.ContentMode);
@@ -148,15 +148,15 @@ public sealed class EvidenceApiTests : IDisposable
         Assert.Equal(HttpStatusCode.OK, healthy.StatusCode);
         var json = await healthy.Content.ReadFromJsonAsync<JsonElement>();
         Assert.True(json.GetProperty("ok").GetBoolean());
-        Assert.Equal(3, json.GetProperty("chain").GetProperty("chainLength").GetInt64());
+        Assert.Equal(4, json.GetProperty("chain").GetProperty("chainLength").GetInt64()); // genesis, definition seed, two evidence entries
 
-        Raw("UPDATE governance_ledger SET ProofJson = '{{\"entityId\":\"forged\"}}' WHERE Sequence = 2"); // SQLite has no trigger; Postgres tests cover the trigger
+        Raw("UPDATE governance_ledger SET ProofJson = '{{\"entityId\":\"forged\"}}' WHERE Sequence = 3"); // SQLite has no trigger; Postgres tests cover the trigger
 
         var tampered = await client.GetAsync("/Ledger/verify");
         Assert.Equal(HttpStatusCode.Conflict, tampered.StatusCode);
         var bad = await tampered.Content.ReadFromJsonAsync<JsonElement>();
         Assert.False(bad.GetProperty("ok").GetBoolean());
-        Assert.Equal(2, bad.GetProperty("chain").GetProperty("firstBrokenSequence").GetInt64());
+        Assert.Equal(3, bad.GetProperty("chain").GetProperty("firstBrokenSequence").GetInt64());
     }
 
     [Fact]
@@ -167,7 +167,7 @@ public sealed class EvidenceApiTests : IDisposable
 
         var head = await client.GetFromJsonAsync<JsonElement>("/Ledger/head");
 
-        Assert.Equal(2, head.GetProperty("sequence").GetInt64());
+        Assert.Equal(3, head.GetProperty("sequence").GetInt64());
         Assert.Equal(created.GetProperty("entryHash").GetString(), head.GetProperty("entryHash").GetString());
     }
 

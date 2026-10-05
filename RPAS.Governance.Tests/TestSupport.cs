@@ -22,6 +22,12 @@ public sealed class TestAuthHandler(
     public const string PetitionerHeader = "X-Test-Petitioner";
     public const string NoIdentityClaim = "__authenticated-without-petitioner-claim__";
 
+    /// <summary>A delegated user token: carries "scp" and the user's "oid" (a named human acting through the petitioner).</summary>
+    public const string HumanHeader = "X-Test-Human";
+
+    /// <summary>An app-only token that also carries an "oid" (the service principal) but "roles" instead of "scp".</summary>
+    public const string AppOidHeader = "X-Test-App-Oid";
+
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         if (!Request.Headers.TryGetValue(PetitionerHeader, out var value))
@@ -33,6 +39,18 @@ public sealed class TestAuthHandler(
         if (value.ToString() != NoIdentityClaim)
         {
             claims.Add(new Claim("azp", value.ToString()));
+        }
+
+        if (Request.Headers.TryGetValue(HumanHeader, out var human))
+        {
+            claims.Add(new Claim("oid", human.ToString()));
+            claims.Add(new Claim("scp", "access_as_user"));
+        }
+        if (Request.Headers.TryGetValue(AppOidHeader, out var appOid))
+        {
+            claims.Add(new Claim("oid", appOid.ToString()));
+            claims.Add(new Claim("roles", "Petitioner"));
+            claims.Add(new Claim("idtyp", "app"));
         }
 
         var identity = new ClaimsIdentity(claims, SchemeName);
@@ -128,12 +146,20 @@ public sealed class ApiFactory(bool useTestAuth, IDictionary<string, string?>? s
         }
     }
 
-    public HttpClient CreateClientFor(string? petitioner)
+    public HttpClient CreateClientFor(string? petitioner, string? human = null, string? appOid = null)
     {
         var client = CreateClient();
         if (petitioner is not null)
         {
             client.DefaultRequestHeaders.Add(TestAuthHandler.PetitionerHeader, petitioner);
+        }
+        if (human is not null)
+        {
+            client.DefaultRequestHeaders.Add(TestAuthHandler.HumanHeader, human);
+        }
+        if (appOid is not null)
+        {
+            client.DefaultRequestHeaders.Add(TestAuthHandler.AppOidHeader, appOid);
         }
         return client;
     }

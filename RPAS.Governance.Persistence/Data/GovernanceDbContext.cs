@@ -9,6 +9,7 @@ public class GovernanceDbContext(DbContextOptions<GovernanceDbContext> options) 
     public DbSet<BusinessCase> BusinessCases => Set<BusinessCase>();
     public DbSet<GovernanceLedgerEntry> GovernanceLedgerEntries => Set<GovernanceLedgerEntry>();
     public DbSet<AuthorityToken> AuthorityTokens => Set<AuthorityToken>();
+    public DbSet<RitualDefinition> RitualDefinitions => Set<RitualDefinition>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -25,8 +26,32 @@ public class GovernanceDbContext(DbContextOptions<GovernanceDbContext> options) 
                       v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
                       v => System.Text.Json.JsonSerializer.Deserialize<System.Collections.Generic.List<string>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new System.Collections.Generic.List<string>())
                   .HasColumnType("jsonb");
+            entity.Property(e => e.Scope).HasMaxLength(32);
+            entity.Property(e => e.HumanId).HasMaxLength(128);
             
             entity.ToTable("authority_tokens");
+        });
+
+        // Map the RitualDefinition (AMD-2026-10-01-0007). Versions are immutable; one row per (petitioner, ritual, version).
+        modelBuilder.Entity<RitualDefinition>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.PetitionerId, e.RitualType, e.Version }).IsUnique();
+            entity.Property(e => e.PetitionerId).HasMaxLength(128);
+            entity.Property(e => e.RitualType).HasMaxLength(128);
+            entity.Property(e => e.Scope).HasMaxLength(32);
+            entity.Property(e => e.DefinitionHash).HasMaxLength(64);
+            entity.Property(e => e.MetadataKeys)
+                  .HasConversion(
+                      v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
+                      v => System.Text.Json.JsonSerializer.Deserialize<System.Collections.Generic.List<string>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new System.Collections.Generic.List<string>())
+                  .HasColumnType("jsonb");
+            entity.Property(e => e.AllowedPaths)
+                  .HasConversion(
+                      v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
+                      v => System.Text.Json.JsonSerializer.Deserialize<System.Collections.Generic.List<string>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new System.Collections.Generic.List<string>())
+                  .HasColumnType("jsonb");
+            entity.ToTable("ritual_definitions");
         });
 
         // Map the BusinessCase

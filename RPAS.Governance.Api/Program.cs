@@ -15,6 +15,7 @@ builder.AddServiceDefaults();
 builder.Services.AddRpasAuthentication(builder.Configuration);
 
 builder.Services.AddSingleton<PetitionerContentModes>();
+builder.Services.AddSingleton<PetitionerAccess>();
 builder.Services.AddLedgerAnchoring(builder.Configuration);
 
 // Add services to the container.

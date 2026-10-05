@@ -31,7 +31,7 @@ public sealed class ApiSecurityTests : IDisposable
         using var scope = _authed.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<GovernanceDbContext>();
         var token = new AuthorityToken(ritual, "entity-1", ttlSeconds, petitionerId);
-        foreach (var p in RitualEnvelope.GetAllowedPaths(ritual))
+        foreach (var p in RitualSeed.PathsFor(ritual))
         {
             token.AllowedPaths.Add(p);
         }

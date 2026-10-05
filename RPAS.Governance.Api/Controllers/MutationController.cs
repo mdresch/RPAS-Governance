@@ -104,6 +104,7 @@ public class MutationController : ControllerBase
             status = "executed", 
             message = "Mutation verified, Topology validated, and token consumed.",
             ritualType = token.RitualType,
+            scope = token.Scope,
             entityId = token.EntityId,
             path = request.TargetPath
         });

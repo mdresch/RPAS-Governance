@@ -26,14 +26,29 @@ public class AuthorityToken
     /// </summary>
     public string? PetitionerId { get; init; }
 
+    /// <summary>
+    /// What the token may be used to do (AMD-2026-10-01-0007): declare-intent, implement, heal or edit-contract.
+    /// Null for the earlier BusinessCase / ledger tokens, which carry no scope.
+    /// </summary>
+    public string? Scope { get; init; }
+
+    /// <summary>
+    /// The named human the token was issued to, set only for human-only scopes (edit-contract). It is the
+    /// identifier from the user's own sign-in, never from an automated petitioner's credentials.
+    /// </summary>
+    public string? HumanId { get; init; }
+
     protected AuthorityToken() { }
 
-    public AuthorityToken(string ritualType, string entityId, int ttlSeconds = 120, string? petitionerId = null)
+    public AuthorityToken(string ritualType, string entityId, int ttlSeconds = 120, string? petitionerId = null,
+        string? scope = null, string? humanId = null)
     {
         RitualType = ritualType;
         EntityId = entityId;
         ExpiresAt = DateTime.UtcNow.AddSeconds(ttlSeconds);
         PetitionerId = petitionerId;
+        Scope = scope;
+        HumanId = humanId;
     }
 
     public void MarkConsumed()

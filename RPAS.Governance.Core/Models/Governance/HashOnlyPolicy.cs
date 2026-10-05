@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace RPAS.Governance.Core.Models.Governance;
 
 /// <summary>
 /// What a hash-only petitioner may send (AMD-2026-10-01-0006). The courthouse receives a content hash plus a
-/// small allow-list of identifier-style metadata, never document content. Anything else is rejected, so personal
+/// small allow-list of identifier-style metadata, never document content. Which rituals exist and which metadata
+/// keys each allows is data (AMD-2026-10-01-0007): the caller resolves the ritual definition and passes its keys in. Anything else is rejected, so personal
 /// or confidential data cannot reach the ledger by accident.
 ///
 /// Limits of this control: it constrains the SHAPE of values (short identifier-like tokens: no spaces, no '@',
@@ -16,17 +18,6 @@ namespace RPAS.Governance.Core.Models.Governance;
 public static partial class HashOnlyPolicy
 {
     public const int MaxMetadataEntries = 16;
-
-    /// <summary>Allowed ritual types and, per ritual, the metadata keys that may accompany them.</summary>
-    public static readonly IReadOnlyDictionary<string, string[]> Rituals = new Dictionary<string, string[]>(StringComparer.Ordinal)
-    {
-        ["IntentDeclared"] = ["moduleId", "intentVersion", "standardId"],
-        ["ContractResult"] = ["moduleId", "contractSuite", "contractVersion", "outcome", "attempt"],
-        ["HealAttempt"] = ["moduleId", "attempt", "outcome", "scope"],
-        ["EvidenceRecorded"] = ["documentId", "documentVersion", "standardId", "ruleSetId", "ruleSetVersion"],
-        ["ScoreAttested"] = ["documentId", "documentVersion", "standardId", "ruleSetId", "ruleSetVersion", "scoreBand", "scoringMethodVersion"],
-        ["HumanAttestation"] = ["documentId", "documentVersion", "reviewerRef", "decision", "scoreBand", "overrideApplied"],
-    };
 
     /// <summary>hash algorithm -> expected lowercase-hex length of the content hash.</summary>
     public static readonly IReadOnlyDictionary<string, int> HashAlgorithms = new Dictionary<string, int>(StringComparer.Ordinal)
@@ -51,13 +42,14 @@ public static partial class HashOnlyPolicy
     /// </summary>
     public static string? Validate(
         string? ritualType,
+        IReadOnlyCollection<string>? allowedKeys,
         string? entityId,
         string? contentHash,
         string? hashAlgorithm,
         string? keyId,
         IReadOnlyDictionary<string, object?>? metadata)
     {
-        if (ritualType is null || !Rituals.TryGetValue(ritualType, out var allowedKeys))
+        if (ritualType is null || allowedKeys is null)
         {
             return "ritualType is not an allowed hash-only ritual type.";
         }
@@ -94,7 +86,7 @@ public static partial class HashOnlyPolicy
 
             foreach (var (key, value) in metadata)
             {
-                if (Array.IndexOf(allowedKeys, key) < 0)
+                if (!allowedKeys.Contains(key))
                 {
                     return $"metadata key '{(IsIdentifier(key) ? key : "<invalid>")}' is not allowed for ritual '{ritualType}'.";
                 }

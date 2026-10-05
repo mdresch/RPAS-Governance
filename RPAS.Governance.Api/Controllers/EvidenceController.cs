@@ -50,8 +50,13 @@ public class EvidenceController(GovernanceDbContext db, ILogger<EvidenceControll
             }
         }
 
+        // AMD-2026-10-01-0007: the ritual and its allowed metadata keys come from the versioned definition in force
+        // for this petitioner, not from a static list. A retired or non-evidence ritual is simply not allowed.
+        var definition = await RitualDefinitionStore.ResolveAsync(db, petitionerId, request.RitualType, ct);
+        var allowedKeys = definition is { AcceptsEvidence: true } ? definition.MetadataKeys : null;
+
         var problem = HashOnlyPolicy.Validate(
-            request.RitualType, request.EntityId, request.ContentHash, request.HashAlgorithm, request.KeyId, metadata);
+            request.RitualType, allowedKeys, request.EntityId, request.ContentHash, request.HashAlgorithm, request.KeyId, metadata);
         if (problem is not null)
         {
             return BadRequest(new { error = problem });
