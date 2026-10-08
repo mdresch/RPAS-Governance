@@ -436,3 +436,10 @@ Desktop.ini
 
 # C# Dev Kit language service caches (AMD-2026-10-01-0004)
 *.lscache
+
+#Ignore vscode AI rules
+.github/instructions/codacy.instructions.md
+
+# Local scratch / verification sandboxes
+scratch/
+remote-verify/

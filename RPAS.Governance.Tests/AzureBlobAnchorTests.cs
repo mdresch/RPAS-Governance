@@ -114,7 +114,7 @@ public sealed class AzureBlobAnchorTests : IDisposable
         var name = Assert.Single(Blobs()).Name;
 
         // The same conditional header the sink sends: a second create of that name is refused by the service.
-        var ex = await Assert.ThrowsAsync<RequestFailedException>(() => _container.GetBlobClient(name).UploadAsync(
+        var ex = await Assert.ThrowsAsync<RequestFailedException>(() => _container!.GetBlobClient(name).UploadAsync(
             BinaryData.FromString("{}"),
             new BlobUploadOptions { Conditions = new BlobRequestConditions { IfNoneMatch = ETag.All } }));
         Assert.True(ex.Status is 409 or 412, $"unexpected status {ex.Status}");

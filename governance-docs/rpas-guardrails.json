@@ -1,5 +1,5 @@
 {
-  "version": "2.3.0",
+  "version": "2.4.2",
   "artifact_id": "RPAS-CM-GRA-001",
   "csr_epoch": "CSR-42",
   "taxonomy_ref": "RPAS-CM-TCL-001",
@@ -21,9 +21,8 @@
       "owner": "AEV",
       "description": "Ensures compilation of all system tiers.",
       "requirements": [
-        ".NET Orchestration solution build (Adpa.sln)",
-        "Next.js Experience Tier build (pnpm build)",
-        "No blocking compiler errors"
+        ".NET Orchestration solution build (RPAS.Governance.slnx)",
+        "Zero blocking compiler errors or warnings"
       ]
     },
     {
@@ -32,9 +31,9 @@
       "owner": "DRACO",
       "description": "Enforces architectural service mesh and project relationships.",
       "requirements": [
-        "Existence of core projects: AppHost, Orchestrator, Web",
-        "AppHost references both Orchestrator and Web",
-        "Correct Aspire SDK versioning (v13.2.2)"
+        "Existence of core projects: Aspire.AppHost, RPAS.Governance.Api, RPAS.Governance.Core, RPAS.Governance.Persistence",
+        "AppHost references and orchestrates Api, ServiceDefaults, and PostgreSQL persistence",
+        "Correct Aspire SDK versioning"
       ]
     },
     {
@@ -44,8 +43,8 @@
       "description": "Validation of TAR-COL invariants and human accountability.",
       "requirements": [
         "Validated rpas-attestation.json against schema",
-        "G5 Check: No direct ledger mutations in Experience Tier",
-        "Manual 'RPAS-OK' attestation for interactive sessions"
+        "Enforcement of G1–G6 invariants and append-only ledger integrity",
+        "All mutations attributed to authorized decisions or petitioners"
       ]
     },
     {
@@ -54,18 +53,19 @@
       "owner": "DRACO",
       "description": "Ensures intent alignment and prevents semantic drift.",
       "requirements": [
-        "Intent audit via DRACO preflight",
-        "Blocking validation in Ritual Phase 3",
-        "No deviation from approved implementation plan"
+        "Intent audit via preflight rituals",
+        "Blocking validation in ritual execution",
+        "Proof-of-life verification across all test suites"
       ]
     }
   ],
   "guardrails": {
-    "G1_AUTHORITY_BOUNDARY": "All agent actions must be proposed and human-approved before execution.",
-    "G2_TASK_TAXONOMY": "Every task must be classified per RPAS-CM-TCL-001 taxonomy.",
-    "G3_EVIDENCE_LINEAGE": "All changes must be recorded in the immutable governance ledger with valid CSR context.",
-    "G4_COLLISION_PREVENTION": "Resource locks must be acquired in the agent task registry before mutation.",
-    "G5_EXECUTION_ISOLATION": "Direct ledger mutations are forbidden in the Experience Tier; all mutations must route through Orchestrator authority."
+    "G1_AUTHORITY_BOUNDARY": "AI proposes, Human approves, Orchestrator executes. No direct state mutation.",
+    "G2_LIFECYCLE_INTEGRITY": "All state transitions must follow the ritual chain: Ideation -> Business Case -> Approval -> Seed -> Proposal -> Decision -> Execution -> Verification.",
+    "G3_EVIDENCE_LINEAGE": "All artifacts must reference their governing decision and retain an immutable, append-only hash-chained audit trail.",
+    "G4_DETERMINISM": "Execution must be idempotent, replay-safe, and deterministic. Replays cannot corrupt state.",
+    "G5_READ_VS_ACT": "Experience Tier and external clients cannot mutate state outside explicit rituals; research tier is read-only.",
+    "G6_TOPOLOGY_BOUNDARY": "A mutation's target path must fall within the authority token's declared path envelope on segment boundaries."
   },
   "enforcement": {
     "default_mode": "interactive",
