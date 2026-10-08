@@ -10,7 +10,7 @@ public class HashOnlyPolicyTests
     private static string? Check(
         string? ritual = "EvidenceRecorded", string? entity = "doc-42", string? hash = null, string? algorithm = "SHA-256",
         string? keyId = null, Dictionary<string, object?>? metadata = null) =>
-        HashOnlyPolicy.Validate(ritual, entity, hash ?? Sha256, algorithm, keyId, metadata);
+        HashOnlyPolicy.Validate(ritual, RitualSeed.EvidenceKeysFor(ritual), entity, hash ?? Sha256, algorithm, keyId, metadata);
 
     [Fact]
     public void AcceptsAWellFormedRecord() =>
@@ -42,7 +42,7 @@ public class HashOnlyPolicyTests
     public void Sha512HashRequires128HexCharacters()
     {
         Assert.NotNull(Check(algorithm: "SHA-512")); // 64 chars given
-        Assert.Null(HashOnlyPolicy.Validate("EvidenceRecorded", "d", new string('b', 128), "SHA-512", null, null));
+        Assert.Null(HashOnlyPolicy.Validate("EvidenceRecorded", RitualSeed.EvidenceKeysFor("EvidenceRecorded"), "d", new string('b', 128), "SHA-512", null, null));
     }
 
     [Fact]

@@ -53,6 +53,12 @@ public class ValidationController : ControllerBase
 
         try
         {
+            // AMD-2026-10-01-0007: the envelope is the AllowedPaths of the ritual definition in force for this
+            // petitioner; an unknown or retired ritual has no definition and therefore an empty envelope. This is
+            // resolved BEFORE the petition's own entities are tracked, because resolving may seed the store with a
+            // save of its own and must never flush half of this petition.
+            var definition = await RitualDefinitionStore.ResolveAsync(_db, petitionerId, petition.Action);
+
             // AMD-2026-10-01-0005: once the hash chain exists, history is frozen. Changes to an existing ledger entry
             // are recorded as NEW entries that refer to it; the original row is never modified. The amendment still
             // carries forward the entry's current state and applies the same validated domain mutation, so a
@@ -191,8 +197,7 @@ public class ValidationController : ControllerBase
             var authorityToken = new AuthorityToken(petition.Action, petition.EntityId, ttlSeconds: 120, petitionerId: petitionerId);
             
             // Step 5.3: Topology Binding (G6 Enforcement)
-            var allowedPaths = RitualEnvelope.GetAllowedPaths(petition.Action);
-            foreach (var path in allowedPaths)
+            foreach (var path in definition?.AllowedPaths ?? [])
             {
                 authorityToken.AllowedPaths.Add(path);
             }

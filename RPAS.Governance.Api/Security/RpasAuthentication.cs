@@ -72,6 +72,33 @@ public static class RpasAuthentication
         return null;
     }
 
+    /// <summary>
+    /// Returns the named human behind the request, or null when the caller is an automated petitioner
+    /// (AMD-2026-10-01-0007). Only a delegated user token counts: it carries the "scp" claim and the user's
+    /// object id ("oid"). App-only client-credentials tokens carry "roles" instead of "scp" (and may say
+    /// idtyp=app), so a petitioner's own credentials can never satisfy a human-only scope.
+    /// </summary>
+    public static string? GetHumanId(ClaimsPrincipal? user)
+    {
+        if (user?.Identity?.IsAuthenticated != true)
+        {
+            return null;
+        }
+
+        if (string.Equals(user.FindFirst("idtyp")?.Value, "app", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        if (string.IsNullOrWhiteSpace(user.FindFirst("scp")?.Value))
+        {
+            return null;
+        }
+
+        var oid = user.FindFirst("oid")?.Value;
+        return string.IsNullOrWhiteSpace(oid) ? null : oid;
+    }
+
     private sealed class DenyAllHandler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory logger,

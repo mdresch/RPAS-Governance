@@ -73,9 +73,9 @@ public class PathEnvelopeTests
     [InlineData("MarkRejected", "/docs/rejected/bc-1.md")]
     [InlineData("OverrideRitual", "/ledger/overrides/o-1.json")]
     public void ShippedRitualEnvelopes_StillAllowTheirOwnPaths(string ritual, string path) =>
-        Assert.True(PathEnvelope.IsAllowed(path, RitualEnvelope.GetAllowedPaths(ritual)));
+        Assert.True(PathEnvelope.IsAllowed(path, RitualSeed.PathsFor(ritual)));
 
     [Fact]
     public void ShippedRitualEnvelopes_DoNotLeakAcrossRituals() =>
-        Assert.False(PathEnvelope.IsAllowed("/docs/ratified/x", RitualEnvelope.GetAllowedPaths("MarkRejected")));
+        Assert.False(PathEnvelope.IsAllowed("/docs/ratified/x", RitualSeed.PathsFor("MarkRejected")));
 }
