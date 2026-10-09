@@ -2,9 +2,9 @@
   "traceability": {
     "artifactId": "RPAS-CM-GRA-005",
     "origin": "Orchestration",
-    "humanDecisionId": "DEC-2026-10-08-002",
-    "csrVersion": "v2.4.2+CSR.2026-10-08T22:00Z",
-    "timestamp": "2026-10-08T20:50:00Z"
+    "humanDecisionId": "DEC-2026-10-09-001",
+    "csrVersion": "v2.4.2+CSR.2026-10-09T08:00Z",
+    "timestamp": "2026-10-09T06:50:00Z"
   },
   "authority": {
     "actorId": "Antigravity-Agent",
@@ -12,20 +12,15 @@
     "ritualRole": "Executor"
   },
   "collision_prevention": {
-    "taskId": "TASK-AMD-2026-10-01-0009",
+    "taskId": "TASK-AMD-2026-10-01-0010",
     "scope": [
-      "governance-docs/AMD-2026-10-01-0009-TypeScript-Petitioner-Client.md",
-      "clients/typescript/package.json",
-      "clients/typescript/tsconfig.json",
-      "clients/typescript/src/types.ts",
-      "clients/typescript/src/errors.ts",
-      "clients/typescript/src/policy.ts",
-      "clients/typescript/src/crypto.ts",
-      "clients/typescript/src/client.ts",
+      "governance-docs/AMD-2026-10-01-0010-Cross-Repo-Contract-Tests.md",
+      "clients/typescript/src/contract.ts",
       "clients/typescript/src/index.ts",
-      "clients/typescript/tests/client.test.ts",
-      "Petitioner-Onboarding-Kit/README.md",
-      ".github/workflows/ci.yml"
+      "clients/typescript/src/types.ts",
+      "clients/typescript/package.json",
+      "clients/typescript/tests/contract.test.ts",
+      "RPAS.Governance.Tests/CrossRepoContractTests.cs"
     ],
     "status": "COMMITTED",
     "locks": []

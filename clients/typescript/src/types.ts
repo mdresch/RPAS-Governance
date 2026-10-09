@@ -78,11 +78,11 @@ export interface MutationResult {
  * Versioned definition of a ritual in force for a petitioner (AMD-2026-10-01-0007).
  */
 export interface RitualDefinition {
-  id: string;
+  id?: string;
   version: number;
   petitionerId: string;
   ritualType: string;
-  isRetired: boolean;
+  isRetired?: boolean;
   acceptsEvidence: boolean;
   metadataKeys: string[];
   scope?: string;
