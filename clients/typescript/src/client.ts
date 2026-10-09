@@ -10,6 +10,7 @@ import {
   RitualDefinitionPublishRequest,
   LedgerHead,
   LedgerVerifyResult,
+  LedgerReplayReport,
 } from './types.js';
 import {
   GovernanceError,
@@ -105,6 +106,14 @@ export class RpasGovernanceClient {
    */
   public async verifyLedger(): Promise<LedgerVerifyResult> {
     return this.get<LedgerVerifyResult>('/Ledger/verify');
+  }
+
+  /**
+   * Replays the entire ledger event stream from sequence 1 to head, reconstituting
+   * state counts and verifying cryptographic continuity (AMD-2026-10-01-0011).
+   */
+  public async replayLedger(): Promise<LedgerReplayReport> {
+    return this.get<LedgerReplayReport>('/Ledger/replay');
   }
 
   // --- Internal HTTP Pipeline with Fail-Closed Error Mapping ---
