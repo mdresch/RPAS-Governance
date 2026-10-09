@@ -4,8 +4,8 @@ This kit provides the standard equipment for any Spoke service (Petitioner) conn
 
 ## 📦 SDK Installation
 Use the strictly-decoupled Petitioner SDK to ensure zero authority leakage.
-- **Project**: `RPAS.Governance.Client`
-- **DI Registration**: `services.AddRpasGovernanceClient(url)`
+- **C# / .NET SDK**: `RPAS.Governance.Client` (`services.AddRpasGovernanceClient(url)`)
+- **TypeScript / Node.js SDK**: [`@rpas/governance-client`](../clients/typescript) (`new RpasGovernanceClient(options)`)
 
 ## 🏛️ The Ritual Loop
 All interactions with the courthouse must follow the explicit "Request Authority -> Execute Effect" loop.

@@ -62,6 +62,23 @@ jobs:
           name: test-results
           path: '**/test-results.trx'
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Test TypeScript Client
+        working-directory: clients/typescript
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm run build
+          pnpm run test
+
       # Informational only, not a pass/fail gate: "only declared files changed" (CONTRIBUTING.md Gate 1)
       # has no independent meaning against a PR diff until rpas-attestation.json is a current, real scope
       # manifest to check against (it presently is not - see AMD-2026-10-01-0012 S2).

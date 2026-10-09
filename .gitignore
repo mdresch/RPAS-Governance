@@ -443,3 +443,6 @@ Desktop.ini
 # Local scratch / verification sandboxes
 scratch/
 remote-verify/
+
+# TypeScript client build outputs
+clients/typescript/dist/

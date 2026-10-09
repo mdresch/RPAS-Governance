@@ -1,0 +1,30 @@
+{
+  "name": "@rpas/governance-client",
+  "version": "1.0.0",
+  "description": "Fail-closed TypeScript petitioner client for the RPAS Sovereign Governance Courthouse",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "node --experimental-strip-types --test tests/client.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "rpas",
+    "governance",
+    "courthouse",
+    "sidpa",
+    "fail-closed"
+  ],
+  "author": "RPAS Sovereign Governance Authority",
+  "license": "SEE LICENSE IN LICENSE",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.5.0"
+  }
+}
+
