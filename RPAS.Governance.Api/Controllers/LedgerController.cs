@@ -32,4 +32,15 @@ public class LedgerController(GovernanceDbContext db, IServiceProvider services)
         var ok = chain.Ok && anchorsOk;
         return StatusCode(ok ? 200 : 409, new { ok, chain, anchors });
     }
+
+    /// <summary>
+    /// Replays the entire ledger event stream from sequence 1 to head, reconstituting state counts
+    /// and verifying cryptographic integrity (AMD-2026-10-01-0011).
+    /// </summary>
+    [HttpGet("replay")]
+    public async Task<IActionResult> Replay(CancellationToken ct)
+    {
+        var report = await LedgerVerifier.ReplayAsync(db, ct);
+        return StatusCode(report.Ok ? 200 : 409, report);
+    }
 }

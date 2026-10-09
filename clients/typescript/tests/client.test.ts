@@ -347,5 +347,43 @@ describe('RpasGovernanceClient Fail-Closed HTTP Pipeline', () => {
     assert.equal(result.ok, true);
     assert.equal(result.chain.headSequence, 10);
   });
+
+  test('replayLedger returns reconstituted state and cryptographic replay report', async () => {
+    const mockResponse: Response = {
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      json: async () => ({
+        ok: true,
+        eventsReplayed: 15,
+        headSequence: 15,
+        headHash: 'head_hash_replay_val',
+        state: {
+          activeDefinitions: 4,
+          issuedTokens: 5,
+          evidenceRecords: 6,
+          businessCases: 0,
+        },
+        problems: [],
+      }),
+    } as unknown as Response;
+
+    const client = new RpasGovernanceClient({
+      baseUrl: 'http://courthouse.test',
+      getBearerToken,
+      fetch: async () => mockResponse,
+    });
+
+    const report = await client.replayLedger();
+    assert.equal(report.ok, true);
+    assert.equal(report.eventsReplayed, 15);
+    assert.equal(report.headSequence, 15);
+    assert.equal(report.headHash, 'head_hash_replay_val');
+    assert.equal(report.state.activeDefinitions, 4);
+    assert.equal(report.state.issuedTokens, 5);
+    assert.equal(report.state.evidenceRecords, 6);
+    assert.equal(report.state.businessCases, 0);
+    assert.deepEqual(report.problems, []);
+  });
 });
 

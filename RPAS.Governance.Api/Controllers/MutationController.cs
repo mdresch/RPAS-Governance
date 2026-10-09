@@ -62,12 +62,12 @@ public class MutationController : ControllerBase
         // 3. Law Check: Expiry and Consumption (early, informative rejection)
         if (token.IsConsumed)
         {
-            return Conflict(new { error = "Authority token has already been consumed (Replay detected)." });
+            return Conflict(new { error = "Authority token has already been consumed (Replay detected).", rule = "TokenReplayRule" });
         }
 
         if (DateTime.UtcNow > token.ExpiresAt)
         {
-            return Conflict(new { error = "Authority token has expired (TTL Breach)." });
+            return Conflict(new { error = "Authority token has expired (TTL Breach).", rule = "TokenExpiredRule" });
         }
 
         // 4. Topology Check (G6, AMD-2026-10-01-0002): canonicalize, then compare on segment boundaries.
@@ -91,9 +91,9 @@ public class MutationController : ControllerBase
             case TokenConsumeResult.NotFound:
                 return NotFound("Authority token not found.");
             case TokenConsumeResult.AlreadyConsumed:
-                return Conflict(new { error = "Authority token has already been consumed (Replay detected)." });
+                return Conflict(new { error = "Authority token has already been consumed (Replay detected).", rule = "TokenReplayRule" });
             default:
-                return Conflict(new { error = "Authority token has expired (TTL Breach)." });
+                return Conflict(new { error = "Authority token has expired (TTL Breach).", rule = "TokenExpiredRule" });
         }
 
         // 6. Mutation Effect (Simulated)

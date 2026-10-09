@@ -29,6 +29,20 @@ public sealed record AnchorVerification(
     long? LatestAnchoredSequence,
     IReadOnlyList<string> Problems);
 
+public sealed record ReconstructedState(
+    int ActiveDefinitions,
+    int IssuedTokens,
+    int EvidenceRecords,
+    int BusinessCases);
+
+public sealed record LedgerReplayReport(
+    bool Ok,
+    long EventsReplayed,
+    long? HeadSequence,
+    string? HeadHash,
+    ReconstructedState State,
+    IReadOnlyList<string> Problems);
+
 /// <summary>Recomputes the hash chain from the stored rows (AMD-2026-10-01-0005).</summary>
 public static class LedgerVerifier
 {
@@ -111,5 +125,78 @@ public static class LedgerVerifier
         }
 
         return new AnchorVerification(problems.Count == 0, checkedCount, latest, problems);
+    }
+
+    /// <summary>
+    /// AMD-2026-10-01-0011: Replays the entire ledger event stream from sequence 1 to head,
+    /// verifying cryptographic continuity and deterministically reconstituting state counts.
+    /// </summary>
+    public static async Task<LedgerReplayReport> ReplayAsync(GovernanceDbContext db, CancellationToken ct = default)
+    {
+        var problems = new List<string>();
+        long expected = 1;
+        var previousHash = LedgerHasher.GenesisPrevHash;
+        long eventsReplayed = 0;
+        string? headHash = null;
+        long? headSequence = null;
+
+        int activeDefinitions = 0;
+        int issuedTokens = 0;
+        int evidenceRecords = 0;
+        int businessCases = 0;
+
+        await foreach (var e in db.GovernanceLedgerEntries.AsNoTracking()
+                           .Where(e => e.Sequence != null)
+                           .OrderBy(e => e.Sequence)
+                           .AsAsyncEnumerable().WithCancellation(ct))
+        {
+            if (e.Sequence != expected)
+            {
+                problems.Add($"Sequence gap or mismatch: expected {expected}, found {e.Sequence}.");
+            }
+            if (!string.Equals(e.PrevHash, previousHash, StringComparison.Ordinal))
+            {
+                problems.Add($"Sequence {e.Sequence}: PrevHash mismatch (expected '{previousHash}', found '{e.PrevHash}').");
+            }
+
+            var recomputed = LedgerHasher.Compute(e);
+            if (!string.Equals(recomputed, e.EntryHash, StringComparison.Ordinal))
+            {
+                problems.Add($"Sequence {e.Sequence}: EntryHash does not match content hash (tampering detected).");
+            }
+
+            switch (e.RitualType)
+            {
+                case "RitualDefinitionChanged":
+                    activeDefinitions++;
+                    break;
+                case "TokenIssued":
+                    issuedTokens++;
+                    break;
+                case "EvidenceRecorded":
+                case "IntentDeclared":
+                case "ContractResult":
+                case "HealAttempt":
+                case "ScoreAttested":
+                case "HumanAttestation":
+                    evidenceRecords++;
+                    break;
+                case "Create":
+                case "MarkApproved":
+                case "MarkRejected":
+                case "OverrideRitual":
+                    businessCases++;
+                    break;
+            }
+
+            previousHash = e.EntryHash!;
+            headHash = e.EntryHash;
+            headSequence = e.Sequence;
+            expected++;
+            eventsReplayed++;
+        }
+
+        var state = new ReconstructedState(activeDefinitions, issuedTokens, evidenceRecords, businessCases);
+        return new LedgerReplayReport(problems.Count == 0, eventsReplayed, headSequence, headHash, state, problems);
     }
 }
