@@ -21,10 +21,13 @@ public static class RpasAuthentication
     // Entra v2 tokens ("azp"), Entra v1 tokens ("appid"), generic OAuth client credentials ("client_id").
     private static readonly string[] PetitionerClaimTypes = ["azp", "appid", "client_id"];
 
+    public const string DevBearerScheme = "DevBearer";
+
     public static IServiceCollection AddRpasAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
         var authority = configuration["Authentication:Authority"];
         var audience = configuration["Authentication:Audience"];
+        var allowDevTokens = configuration.GetValue<bool>("Authentication:AllowDevTokens", false);
 
         if (!string.IsNullOrWhiteSpace(authority))
         {
@@ -39,6 +42,11 @@ public static class RpasAuthentication
                     options.TokenValidationParameters.ValidateLifetime = true;
                     options.TokenValidationParameters.RequireSignedTokens = true;
                 });
+        }
+        else if (allowDevTokens)
+        {
+            services.AddAuthentication(DevBearerScheme)
+                .AddScheme<AuthenticationSchemeOptions, DevTokenAuthHandler>(DevBearerScheme, _ => { });
         }
         else
         {
@@ -108,6 +116,68 @@ public static class RpasAuthentication
         {
             Logger.LogCritical("RPAS authentication is not configured (Authentication:Authority is empty); rejecting request.");
             return Task.FromResult(AuthenticateResult.NoResult());
+        }
+    }
+
+    /// <summary>
+    /// Local development authentication handler (active only when Authentication:AllowDevTokens is true).
+    /// Extracts petitioner identity and optional human governor claims from dev bearer tokens or headers.
+    /// </summary>
+    private sealed class DevTokenAuthHandler(
+        IOptionsMonitor<AuthenticationSchemeOptions> options,
+        ILoggerFactory logger,
+        UrlEncoder encoder) : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
+    {
+        protected override Task<AuthenticateResult> HandleAuthenticateAsync()
+        {
+            var authHeader = Request.Headers.Authorization.ToString();
+            if (string.IsNullOrWhiteSpace(authHeader) || !authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            {
+                return Task.FromResult(AuthenticateResult.NoResult());
+            }
+
+            var token = authHeader["Bearer ".Length..].Trim();
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                return Task.FromResult(AuthenticateResult.NoResult());
+            }
+
+            // Extract petitioner identity: prefer X-Petitioner-Id, or derive from token (e.g. "token-sidpa-service-principal" -> "sidpa")
+            var petitioner = Request.Headers.TryGetValue("X-Petitioner-Id", out var pVal) && !string.IsNullOrWhiteSpace(pVal)
+                ? pVal.ToString()
+                : (token.Contains("sidpa", StringComparison.OrdinalIgnoreCase) ? "sidpa" : token);
+
+            var claims = new List<Claim>
+            {
+                new("azp", petitioner),
+                new("appid", petitioner),
+                new("client_id", petitioner)
+            };
+
+            // Support human governor identification for human-only scopes (G1)
+            if (Request.Headers.TryGetValue("X-Human-Id", out var hVal) && !string.IsNullOrWhiteSpace(hVal))
+            {
+                claims.Add(new Claim("oid", hVal.ToString()));
+                claims.Add(new Claim("scp", "access_as_user"));
+            }
+            else if (token.Contains("human", StringComparison.OrdinalIgnoreCase)
+                     || token.Contains("governor", StringComparison.OrdinalIgnoreCase)
+                     || token.Contains("auditor", StringComparison.OrdinalIgnoreCase))
+            {
+                claims.Add(new Claim("oid", "auditor-menno"));
+                claims.Add(new Claim("scp", "access_as_user"));
+            }
+            else
+            {
+                claims.Add(new Claim("roles", "Petitioner"));
+            }
+
+            var identity = new ClaimsIdentity(claims, DevBearerScheme);
+            var principal = new ClaimsPrincipal(identity);
+            var ticket = new AuthenticationTicket(principal, DevBearerScheme);
+
+            Logger.LogDebug("DevTokenAuthHandler: Authenticated development petitioner '{Petitioner}'", petitioner);
+            return Task.FromResult(AuthenticateResult.Success(ticket));
         }
     }
 }

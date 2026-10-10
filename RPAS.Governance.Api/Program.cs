@@ -60,7 +60,10 @@ if (!app.Configuration.GetValue("Governance:SkipEfMigrations", false))
     }
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers().RequireAuthorization();
