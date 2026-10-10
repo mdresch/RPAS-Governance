@@ -5,6 +5,7 @@ var db = builder.AddPostgres("postgres")
     .AddDatabase("governanceDb");
 
 builder.AddProject("api", "../RPAS.Governance.Api/RPAS.Governance.Api.csproj")
+    .WithHttpEndpoint(port: 5000, name: "http")
     .WithReference(db)
     .WaitFor(db);
 
