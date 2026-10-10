@@ -63,6 +63,29 @@ public sealed class ApiSecurityTests : IDisposable
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
+    [Fact]
+    public async Task AllowDevTokens_AuthenticatesBearerPetitioner_InDevelopment()
+    {
+        using var devFactory = new ApiFactory(useTestAuth: false, new Dictionary<string, string?>
+        {
+            ["Authentication:AllowDevTokens"] = "true",
+            ["Governance:Petitioners:sidpa:Scopes"] = "declare-intent",
+        });
+        devFactory.EnsureDatabase();
+
+        using var client = devFactory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", "token-sidpa-service-principal");
+
+        var response = await client.PostAsJsonAsync("/Tokens/issue", new
+        {
+            RitualType = "DeclareIntent",
+            EntityId = "doc-dev-1",
+            TtlSeconds = 300
+        });
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+    }
+
     [Theory]
     [InlineData("/Mutation/execute")]
     [InlineData("/Validation/validate")]
