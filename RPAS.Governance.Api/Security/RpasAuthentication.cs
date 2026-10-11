@@ -29,7 +29,9 @@ public static class RpasAuthentication
         var audience = configuration["Authentication:Audience"];
         var allowDevTokens = configuration.GetValue<bool>("Authentication:AllowDevTokens", false);
 
-        if (!string.IsNullOrWhiteSpace(authority))
+        var isConfiguredAuthority = !string.IsNullOrWhiteSpace(authority) && !authority.Contains("<TENANT_ID>");
+
+        if (isConfiguredAuthority)
         {
             services.AddAuthentication(Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
