@@ -41,6 +41,9 @@ builder.Services.AddDbContext<GovernanceDbContext>((sp, options) =>
     options.AddInterceptors(sp.GetRequiredService<RpasLawEnforcementInterceptor>());
 });
 
+// Configure Aspire health checks, resilience, and OpenTelemetry for Npgsql EF Core
+builder.EnrichNpgsqlDbContext<GovernanceDbContext>();
+
 var app = builder.Build();
 
 // Map standard Aspire endpoints (/health, /alive)

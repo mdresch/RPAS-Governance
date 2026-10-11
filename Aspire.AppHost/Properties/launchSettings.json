@@ -5,11 +5,13 @@
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": true,
-      "applicationUrl": "http://localhost:17200",
+      "applicationUrl": "http://rpas.dev.localhost:17200",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL": "http://localhost:19200",
-        "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL": "http://localhost:20200",
+        "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL": "http://otlp.dev.localhost:19200",
+        "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL": "http://resources.dev.localhost:20200",
+        "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL": "http://otlp.dev.localhost:19200",
+        "ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL": "http://resources.dev.localhost:20200",
         "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
       }
     },
@@ -17,11 +19,13 @@
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": true,
-      "applicationUrl": "https://localhost:17201;http://localhost:17200",
+      "applicationUrl": "https://rpas.dev.localhost:17201;http://rpas.dev.localhost:17200",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL": "https://localhost:19201",
-        "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL": "https://localhost:20201",
+        "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL": "https://otlp.dev.localhost:19201",
+        "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL": "https://resources.dev.localhost:20201",
+        "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL": "https://otlp.dev.localhost:19201",
+        "ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL": "https://resources.dev.localhost:20201",
         "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
       }
     }
